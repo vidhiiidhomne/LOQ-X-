@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Attendance Pro | AI-Enhanced Tracking System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse-ring {
+            position: relative;
+        }
+        
+        .pulse-ring::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.4);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+        
+        .attendance-toggle {
+            transition: all 0.3s ease;
+        }
+        
+        .attendance-toggle.active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .attendance-toggle.inactive {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .sidebar-link {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar-link::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: #667eea;
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar-link:hover::after,
+        .sidebar-link.active::after {
+            transform: scaleY(1);
+        }
+        
+        .toast {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        
+        .floating-action {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .grid-pattern {
+            background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 overflow-x-hidden">
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md animate-fade-in">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <i class="fas fa-graduation-cap text-3xl text-white"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Smart Attendance Pro</h2>
+                <p class="text-gray-500 mt-2">AI-Enhanced Academic Tracking</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Select Role</label>
+                    <select id="roleSelect" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                        <option value="faculty">Faculty</option>
+                        <option value="admin">Administrator</option>
+                        <option value="student">Student</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" value="faculty@university.edu" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="Enter your email">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" value="password" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="Enter password">
+                </div>
+                
+                <button onclick="handleLogin()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all">
+                    Sign In
+                </button>
+            </div>
+            
+            <div class="mt-6 text-center text-sm text-gray-500">
+                <p>Demo Credentials: faculty@university.edu / password</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="hidden">
+        <!-- Sidebar -->
+        <aside class="fixed left-0 top-0 h-full w-64 bg-white shadow-xl z-40 transform transition-transform duration-300" id="sidebar">
+            <div class="p-6 border-b border-gray-100">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-gray-800">Smart Attendance</h1>
+                        <p class="text-xs text-gray-500" id="userRole">Faculty Portal</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="p-4 space-y-2">
+                <a href="#" onclick="showSection('dashboard')" class="sidebar-link active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+                    <i class="fas fa-chart-line w-5"></i>
+                    <span class="font-medium">Dashboard</span>
+                </a>
+                <a href="#" onclick="showSection('attendance')" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+                    <i class="fas fa-clipboard-check w-5"></i>
+                    <span class="font-medium">Take Attendance</span>
+                </a>
+                <a href="#" onclick="showSection('students')" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+                    <i class="fas fa-users w-5"></i>
+                    <span class="font-medium">Students</span>
+                </a>
+                <a href="#" onclick="showSection('reports')" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+                    <i class="fas fa-file-alt w-5"></i>
+                    <span class="font-medium">Reports</span>
+                </a>
+                <a href="#" onclick="showSection('alerts')" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+                    <i class="fas fa-bell w-5"></i>
+                    <span class="font-medium">Alerts</span>
+                    <span id="alertBadge" class="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5 hidden">0</span>
+                </a>
+                <a href="#" onclick="showSection('settings')" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+                    <i class="fas fa-cog w-5"></i>
+                    <span class="font-medium">Settings</span>
+                </a>
+            </nav>
+            
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
+                <button onclick="logout()" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 w-full transition-all">
+                    <i class="fas fa-sign-out-alt w-5"></i>
+                    <span class="font-medium">Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 min-h-screen transition-all duration-300" id="mainContent">
+            <!-- Header -->
+            <header class="bg-white shadow-sm sticky top-0 z-30">
+                <div class="flex items-center justify-between px-8 py-4">
+                    <div class="flex items-center space-x-4">
+                        <button onclick="toggleSidebar()" class="lg:hidden text-gray-600 hover:text-gray-800">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <h2 class="text-2xl font-bold text-gray-800" id="pageTitle">Dashboard</h2>
+                    </div>
+                    
+                    <div class="flex items-center space-x-6">
+                        <div class="relative">
+                            <button onclick="toggleNotifications()" class="text-gray-600 hover:text-gray-800 relative">
+                                <i class="fas fa-bell text-xl"></i>
+                                <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                            </button>
+                            
+                            <!-- Notification Dropdown -->
+                            <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-50">
+                                <div class="p-4 border-b border-gray-100">
+                                    <h3 class="font-semibold text-gray-800">Notifications</h3>
+                                </div>
+                                <div class="max-h-64 overflow-y-auto" id="notificationList">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <div class="text-right hidden sm:block">
+                                <p class="font-semibold text-gray-800">Dr. Sarah Johnson</p>
+                                <p class="text-sm text-gray-500">Computer Science Dept</p>
+                            </div>
+                            <div class="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                                SJ
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Sections -->
+            <div class="p-8 grid-pattern min-h-screen pb-24">
+                
+                <!-- Dashboard Section -->
+                <section id="dashboardSection" class="space-y-6 animate-fade-in">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-users text-blue-600 text-xl"></i>
+                                </div>
+                                <span class="text-green-500 text-sm font-semibold">+12%</span>
+                            </div>
+                            <h3 class="text-gray-500 text-sm font-medium">Total Students</h3>
+                            <p class="text-3xl font-bold text-gray-800 mt-1" id="totalStudents">156</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                                </div>
+                                <span class="text-green-500 text-sm font-semibold">+5%</span>
+                            </div>
+                            <h3 class="text-gray-500 text-sm font-medium">Avg Attendance</h3>
+                            <p class="text-3xl font-bold text-gray-800 mt-1" id="avgAttendance">87%</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center pulse-ring">
+                                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                                </div>
+                                <span class="text-red-500 text-sm font-semibold" id="defaulterChange">+2</span>
+                            </div>
+                            <h3 class="text-gray-500 text-sm font-medium">Defaulters</h3>
+                            <p class="text-3xl font-bold text-gray-800 mt-1" id="defaulterCount">12</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-calendar-check text-purple-600 text-xl"></i>
+                                </div>
+                                <span class="text-gray-500 text-sm font-semibold">Today</span>
+                            </div>
+                            <h3 class="text-gray-500 text-sm font-medium">Classes Taken</h3>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">4</p>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-bold text-gray-800">Attendance Trends</h3>
+                                <select class="text-sm border border-gray-200 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option>Last 7 Days</option>
+                                    <option>Last 30 Days</option>
+                                    <option>This Semester</option>
+                                </select>
+                            </div>
+                            <canvas id="attendanceChart" height="250"></canvas>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-bold text-gray-800">Subject-wise Distribution</h3>
+                                <button class="text-indigo-600 text-sm hover:underline">View Details</button>
+                            </div>
+                            <canvas id="subjectChart" height="250"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Defaulters -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Critical Defaulters</h3>
+                                <p class="text-sm text-gray-500 mt-1">Students below 75% attendance threshold</p>
+                            </div>
+                            <button onclick="sendBulkAlerts()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
+                                <i class="fas fa-paper-plane"></i>
+                                <span>Send Alerts</span>
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Student</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Roll No</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Subject</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Attendance</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="defaultersTable" class="divide-y divide-gray-100">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Attendance Section -->
+                <section id="attendanceSection" class="hidden space-y-6 animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Take Attendance</h3>
+                                <p class="text-sm text-gray-500">Record today's attendance for your class</p>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-3">
+                                <select id="subjectSelect" class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="CS101">CS101 - Data Structures</option>
+                                    <option value="CS102">CS102 - Algorithms</option>
+                                    <option value="CS103">CS103 - Database Systems</option>
+                                    <option value="CS104">CS104 - Web Development</option>
+                                </select>
+                                
+                                <input type="date" id="attendanceDate" class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                
+                                <button onclick="loadAttendanceSheet()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2">
+                                    <i class="fas fa-sync-alt"></i>
+                                    <span>Load Class</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats -->
+                        <div class="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-xl">
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-gray-800" id="presentCount">0</p>
+                                <p class="text-sm text-gray-500">Present</p>
+                            </div>
+                            <div class="text-center border-x border-gray-200">
+                                <p class="text-2xl font-bold text-gray-800" id="absentCount">0</p>
+                                <p class="text-sm text-gray-500">Absent</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-indigo-600" id="percentageCount">0%</p>
+                                <p class="text-sm text-gray-500">Percentage</p>
+                            </div>
+                        </div>
+
+                        <!-- Attendance Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="attendanceGrid">
+                            <!-- Populated by JS -->
+                        </div>
+
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button onclick="markAllPresent()" class="px-4 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                                Mark All Present
+                            </button>
+                            <button onclick="saveAttendance()" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all flex items-center space-x-2">
+                                <i class="fas fa-save"></i>
+                                <span>Save Attendance</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Students Section -->
+                <section id="studentsSection" class="hidden space-y-6 animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <div class="relative flex-1 max-w-md">
+                                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" id="studentSearch" placeholder="Search students by name or roll number..." 
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    onkeyup="searchStudents()">
+                            </div>
+                            
+                            <div class="flex gap-3">
+                                <button onclick="exportStudentData()" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center space-x-2">
+                                    <i class="fas fa-download"></i>
+                                    <span>Export</span>
+                                </button>
+                                <button onclick="openAddStudentModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center space-x-2">
+                                    <i class="fas fa-plus"></i>
+                                    <span>Add Student</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Student Info</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Roll Number</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Overall Attendance</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Classes Attended</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentsTable" class="divide-y divide-gray-100">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Reports Section -->
+                <section id="reportsSection" class="hidden space-y-6 animate-fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-hover cursor-pointer" onclick="generateReport('monthly')">
+                            <div class="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
+                                <i class="fas fa-calendar-alt text-indigo-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-2">Monthly Report</h3>
+                            <p class="text-gray-500 text-sm mb-4">Comprehensive monthly attendance analysis with trends</p>
+                            <button class="text-indigo-600 font-medium text-sm hover:underline">Generate PDF</button>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-hover cursor-pointer" onclick="generateReport('defaulter')">
+                            <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center mb-4">
+                                <i class="fas fa-user-times text-red-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-2">Defaulter List</h3>
+                            <p class="text-gray-500 text-sm mb-4">Students below minimum attendance threshold</p>
+                            <button class="text-red-600 font-medium text-sm hover:underline">Generate PDF</button>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-hover cursor-pointer" onclick="generateReport('subject')">
+                            <div class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+                                <i class="fas fa-book text-green-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-2">Subject Analysis</h3>
+                            <p class="text-gray-500 text-sm mb-4">Subject-wise attendance breakdown and comparison</p>
+                            <button class="text-green-600 font-medium text-sm hover:underline">Generate Excel</button>
+                        </div>
+                    </div>
+
+                    <!-- Report Preview -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-gray-800">Report Preview</h3>
+                            <div class="flex gap-2">
+                                <button onclick="downloadPDF()" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center space-x-2">
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>PDF</span>
+                                </button>
+                                <button onclick="downloadExcel()" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 flex items-center space-x-2">
+                                    <i class="fas fa-file-excel"></i>
+                                    <span>Excel</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="reportPreview" class="border border-gray-200 rounded-xl p-8 bg-gray-50 min-h-96">
+                            <div class="text-center text-gray-400 mt-20">
+                                <i class="fas fa-chart-bar text-6xl mb-4"></i>
+                                <p>Select a report type above to preview</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Alerts Section -->
+                <section id="alertsSection" class="hidden space-y-6 animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Alert Center</h3>
+                                <p class="text-sm text-gray-500">Manage and send attendance notifications</p>
+                            </div>
+                            <button onclick="sendCustomAlert()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center space-x-2">
+                                <i class="fas fa-plus"></i>
+                                <span>New Alert</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-4" id="alertsList">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Settings Section -->
+                <section id="settingsSection" class="hidden space-y-6 animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+                        <h3 class="text-lg font-bold text-gray-800 mb-6">System Settings</h3>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Minimum Attendance Threshold (%)</label>
+                                <input type="number" id="thresholdInput" value="75" min="0" max="100" 
+                                    class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                    onchange="updateThreshold(this.value)">
+                                <p class="text-xs text-gray-500 mt-1">Students below this percentage will be marked as defaulters</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Auto-Alert Threshold (%)</label>
+                                <input type="number" value="80" min="0" max="100" 
+                                    class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                <p class="text-xs text-gray-500 mt-1">Send warning alerts when attendance drops below this level</p>
+                            </div>
+                            
+                            <div class="flex items-center justify-between py-4 border-t border-gray-100">
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Email Notifications</h4>
+                                    <p class="text-sm text-gray-500">Send automatic emails to defaulters</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-between py-4 border-t border-gray-100">
+                                <div>
+                                    <h4 class="font-medium text-gray-800">SMS Alerts</h4>
+                                    <p class="text-sm text-gray-500">Send SMS notifications to parents/guardians</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                            
+                            <div class="pt-4">
+                                <button onclick="saveSettings()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
+                                    Save Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Data Store
+        let students = [
+            { id: 1, name: "Alice Johnson", roll: "CS2024001", email: "alice@student.edu", attendance: 92, present: 23, total: 25, status: "good" },
+            { id: 2, name: "Bob Smith", roll: "CS2024002", email: "bob@student.edu", attendance: 88, present: 22, total: 25, status: "good" },
+            { id: 3, name: "Charlie Brown", roll: "CS2024003", email: "charlie@student.edu", attendance: 72, present: 18, total: 25, status: "warning" },
+            { id: 4, name: "Diana Prince", roll: "CS2024004", email: "diana@student.edu", attendance: 65, present: 16, total: 25, status: "critical" },
+            { id: 5, name: "Eve Anderson", roll: "CS2024005", email: "eve@student.edu", attendance: 96, present: 24, total: 25, status: "good" },
+            { id: 6, name: "Frank Wright", roll: "CS2024006", email: "frank@student.edu", attendance: 68, present: 17, total: 25, status: "critical" },
+            { id: 7, name: "Grace Hopper", roll: "CS2024007", email: "grace@student.edu", attendance: 84, present: 21, total: 25, status: "good" },
+            { id: 8, name: "Henry Ford", roll: "CS2024008", email: "henry@student.edu", attendance: 76, present: 19, total: 25, status: "warning" },
+            { id: 9, name: "Iris West", roll: "CS2024009", email: "iris@student.edu", attendance: 60, present: 15, total: 25, status: "critical" },
+            { id: 10, name: "Jack Ryan", roll: "CS2024010", email: "jack@student.edu", attendance: 90, present: 22, total: 25, status: "good" }
+        ];
+
+        let attendanceThreshold = 75;
+        let currentAttendance = {};
+        let notifications = [
+            { id: 1, message: "New defaulter detected: Charlie Brown (72%)", time: "10 minutes ago", type: "warning" },
+            { id: 2, message: "Attendance saved for CS101 - Data Structures", time: "1 hour ago", type: "success" },
+            { id: 3, message: "Monthly report generated successfully", time: "3 hours ago", type: "info" }
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('attendanceDate').valueAsDate = new Date();
+            initCharts();
+            updateDashboard();
+        });
+
+        // Authentication
+        function handleLogin() {
+            const role = document.getElementById('roleSelect').value;
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            document.getElementById('userRole').textContent = role.charAt(0).toUpperCase() + role.slice(1) + ' Portal';
+            
+            if (role === 'student') {
+                // Simplified view for students
+                document.querySelectorAll('.sidebar-link')[1].style.display = 'none';
+                document.querySelectorAll('.sidebar-link')[4].style.display = 'none';
+            }
+            
+            showToast('Welcome back, Dr. Sarah Johnson!', 'success');
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+        // Navigation
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(section + 'Section').classList.remove('hidden');
+            
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+            event.target.closest('.sidebar-link').classList.add('active');
+            
+            // Update title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'attendance': 'Take Attendance',
+                'students': 'Student Management',
+                'reports': 'Reports & Analytics',
+                'alerts': 'Alert Center',
+                'settings': 'Settings'
+            };
+            document.getElementById('pageTitle').textContent = titles[section];
+            
+            if (section === 'attendance') {
+                loadAttendanceSheet();
+            } else if (section === 'students') {
+                renderStudentsTable();
+            } else if (section === 'alerts') {
+                renderAlerts();
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        // Dashboard Functions
+        function updateDashboard() {
+            const defaulters = students.filter(s => s.attendance < attendanceThreshold);
+            document.getElementById('defaulterCount').textContent = defaulters.length;
+            document.getElementById('totalStudents').textContent = students.length;
+            
+            const avg = Math.round(students.reduce((acc, s) => acc + s.attendance, 0) / students.length);
+            document.getElementById('avgAttendance').textContent = avg + '%';
+            
+            // Update defaulters table
+            const tbody = document.getElementById('defaultersTable');
+            tbody.innerHTML = defaulters.slice(0, 5).map(student => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold mr-3">
+                                ${student.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <span class="font-medium text-gray-800">${student.name}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">${student.roll}</td>
+                    <td class="px-6 py-4 text-gray-600">CS101</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                <div class="bg-red-500 h-2 rounded-full" style="width: ${student.attendance}%"></div>
+                            </div>
+                            <span class="text-sm font-medium text-red-600">${student.attendance}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Critical</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="sendIndividualAlert(${student.id})" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+                            Send Alert
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            // Update alert badge
+            if (defaulters.length > 0) {
+                document.getElementById('alertBadge').textContent = defaulters.length;
+                document.getElementById('alertBadge').classList.remove('hidden');
+            }
+        }
+
+        // Attendance Functions
+        function loadAttendanceSheet() {
+            const grid = document.getElementById('attendanceGrid');
+            grid.innerHTML = '';
+            currentAttendance = {};
+            
+            students.forEach(student => {
+                currentAttendance[student.id] = true; // Default present
+                
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 rounded-xl p-4 border-2 border-transparent hover:border-indigo-200 transition-all';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                                ${student.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800">${student.name}</h4>
+                                <p class="text-sm text-gray-500">${student.roll}</p>
+                            </div>
+                        </div>
+                        <button onclick="toggleAttendance(${student.id}, this)" 
+                            class="attendance-toggle active w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            updateAttendanceStats();
+        }
+
+        function toggleAttendance(studentId, btn) {
+            currentAttendance[studentId] = !currentAttendance[studentId];
+            
+            if (currentAttendance[studentId]) {
+                btn.classList.remove('inactive');
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+            } else {
+                btn.classList.remove('active');
+                btn.classList.add('inactive');
+                btn.innerHTML = '<i class="fas fa-times"></i>';
+            }
+            
+            updateAttendanceStats();
+        }
+
+        function updateAttendanceStats() {
+            const present = Object.values(currentAttendance).filter(v => v).length;
+            const total = Object.keys(currentAttendance).length;
+            const absent = total - present;
+            const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+            
+            document.getElementById('presentCount').textContent = present;
+            document.getElementById('absentCount').textContent = absent;
+            document.getElementById('percentageCount').textContent = percentage + '%';
+        }
+
+        function markAllPresent() {
+            Object.keys(currentAttendance).forEach(id => {
+                currentAttendance[id] = true;
+            });
+            loadAttendanceSheet();
+            showToast('All students marked present', 'success');
+        }
+
+        function saveAttendance() {
+            // Update student records
+            Object.keys(currentAttendance).forEach(id => {
+                const student = students.find(s => s.id == id);
+                if (student) {
+                    student.total++;
+                    if (currentAttendance[id]) {
+                        student.present++;
+                    }
+                    student.attendance = Math.round((student.present / student.total) * 100);
+                    
+                    // Update status
+                    if (student.attendance >= 85) student.status = 'good';
+                    else if (student.attendance >= attendanceThreshold) student.status = 'warning';
+                    else student.status = 'critical';
+                }
+            });
+            
+            showToast('Attendance saved successfully!', 'success');
+            updateDashboard();
+            
+            // Add notification
+            const subject = document.getElementById('subjectSelect').value;
+            notifications.unshift({
+                id: Date.now(),
+                message: `Attendance saved for ${subject}`,
+                time: 'Just now',
+                type: 'success'
+            });
+        }
+
+        // Student Management
+        function renderStudentsTable() {
+            const tbody = document.getElementById('studentsTable');
+            tbody.innerHTML = students.map(student => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold mr-3">
+                                ${student.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-800">${student.name}</div>
+                                <div class="text-sm text-gray-500">${student.email}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600 font-mono">${student.roll}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-24 bg-gray-200 rounded-full h-2.5 mr-3">
+                                <div class="${getAttendanceColor(student.attendance)} h-2.5 rounded-full transition-all" style="width: ${student.attendance}%"></div>
+                            </div>
+                            <span class="text-sm font-semibold ${getAttendanceTextColor(student.attendance)}">${student.attendance}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">${student.present}/${student.total}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(student.status)}">
+                            ${student.status.charAt(0).toUpperCase() + student.status.slice(1)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="viewStudent(${student.id})" class="text-indigo-600 hover:text-indigo-800 mr-3">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="sendIndividualAlert(${student.id})" class="text-orange-600 hover:text-orange-800">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getAttendanceColor(pct) {
+            if (pct >= 85) return 'bg-green-500';
+            if (pct >= 75) return 'bg-yellow-500';
+            return 'bg-red-500';
+        }
+
+        function getAttendanceTextColor(pct) {
+            if (pct >= 85) return 'text-green-600';
+            if (pct >= 75) return 'text-yellow-600';
+            return 'text-red-600';
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'good': 'bg-green-100 text-green-700',
+                'warning': 'bg-yellow-100 text-yellow-700',
+                'critical': 'bg-red-100 text-red-700'
+            };
+            return badges[status] || 'bg-gray-100 text-gray-700';
+        }
+
+        function searchStudents() {
+            const query = document.getElementById('studentSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#studentsTable tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        // Alerts
+        function sendIndividualAlert(studentId) {
+            const student = students.find(s => s.id === studentId);
+            showToast(`Alert sent to ${student.name}`, 'success');
+            
+            notifications.unshift({
+                id: Date.now(),
+                message: `Alert sent to ${student.name} (${student.attendance}% attendance)`,
+                time: 'Just now',
+                type: 'warning'
+            });
+            
+            renderAlerts();
+        }
+
+        function sendBulkAlerts() {
+            const defaulters = students.filter(s => s.attendance < attendanceThreshold);
+            showToast(`Alerts sent to ${defaulters.length} defaulters`, 'success');
+            
+            notifications.unshift({
+                id: Date.now(),
+                message: `Bulk alerts sent to ${defaulters.length} students`,
+                time: 'Just now',
+                type: 'warning'
+            });
+            
+            renderAlerts();
+        }
+
+        function renderAlerts() {
+            const container = document.getElementById('alertsList');
+            const defaulters = students.filter(s => s.attendance < attendanceThreshold);
+            
+            container.innerHTML = defaulters.map(student => `
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border-l-4 border-red-500">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                            <i class="fas fa-exclamation"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">${student.name}</h4>
+                            <p class="text-sm text-gray-500">Attendance: ${student.attendance}% | Roll: ${student.roll}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm text-gray-500">Last alert: Never</span>
+                        <button onclick="sendIndividualAlert(${student.id})" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">
+                            Send Reminder
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Reports
+        function generateReport(type) {
+            const preview = document.getElementById('reportPreview');
+            const date = new Date().toLocaleDateString();
+            
+            if (type === 'monthly') {
+                preview.innerHTML = `
+                    <div class="bg-white p-8 rounded-lg shadow-sm">
+                        <div class="text-center mb-8">
+                            <h2 class="text-2xl font-bold text-gray-800">Monthly Attendance Report</h2>
+                            <p class="text-gray-500">Generated on ${date}</p>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex justify-between py-2 border-b">
+                                <span class="font-medium">Total Classes Conducted</span>
+                                <span class="font-bold">25</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-b">
+                                <span class="font-medium">Average Attendance</span>
+                                <span class="font-bold text-green-600">87%</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-b">
+                                <span class="font-medium">Students with 100% Attendance</span>
+                                <span class="font-bold">3</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-b">
+                                <span class="font-medium">Defaulters (<75%)</span>
+                                <span class="font-bold text-red-600">12</span>
+                            </div>
+                        </div>
+                        <div class="mt-8">
+                            <canvas id="reportChart" height="200"></canvas>
+                        </div>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    new Chart(document.getElementById('reportChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                            datasets: [{
+                                label: 'Attendance %',
+                                data: [92, 88, 85, 87],
+                                backgroundColor: 'rgba(99, 102, 241, 0.8)'
+                            }]
+                        },
+                        options: { responsive: true }
+                    });
+                }, 100);
+            } else if (type === 'defaulter') {
+                const defaulters = students.filter(s => s.attendance < attendanceThreshold);
+                preview.innerHTML = `
+                    <div class="bg-white p-8 rounded-lg shadow-sm">
+                        <div class="text-center mb-8">
+                            <h2 class="text-2xl font-bold text-red-600">Defaulter List</h2>
+                            <p class="text-gray-500">Students below ${attendanceThreshold}% attendance</p>
+                        </div>
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b-2">
+                                    <th class="text-left py-2">Name</th>
+                                    <th class="text-left py-2">Roll No</th>
+                                    <th class="text-right py-2">Attendance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${defaulters.map(s => `
+                                    <tr class="border-b">
+                                        <td class="py-2">${s.name}</td>
+                                        <td class="py-2">${s.roll}</td>
+                                        <td class="py-2 text-right font-bold text-red-600">${s.attendance}%</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+        }
+
+        function downloadPDF() {
+            showToast('PDF download started...', 'success');
+        }
+
+        function downloadExcel() {
+            showToast('Excel file generated!', 'success');
+        }
+
+        // Settings
+        function updateThreshold(value) {
+            attendanceThreshold = parseInt(value);
+            updateDashboard();
+        }
+
+        function saveSettings() {
+            showToast('Settings saved successfully!', 'success');
+        }
+
+        // Charts
+        function initCharts() {
+            // Attendance Trend Chart
+            const ctx1 = document.getElementById('attendanceChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+                    datasets: [{
+                        label: 'Present',
+                        data: [45, 42, 48, 44, 46],
+                        borderColor: 'rgb(99, 102, 241)',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Absent',
+                        data: [5, 8, 2, 6, 4],
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // Subject Chart
+            const ctx2 = document.getElementById('subjectChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['CS101', 'CS102', 'CS103', 'CS104'],
+                    datasets: [{
+                        data: [87, 92, 78, 85],
+                        backgroundColor: [
+                            'rgba(99, 102, 241, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(239, 68, 68, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // UI Utilities
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-indigo-500'
+            };
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-times-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            
+            toast.className = `toast ${colors[type]} text-white px-6 py-4 rounded-xl shadow-2xl flex items-center space-x-3 min-w-300`;
+            toast.innerHTML = `
+                <i class="fas ${icons[type]} text-xl"></i>
+                <span class="font-medium">${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationDropdown');
+            dropdown.classList.toggle('hidden');
+            
+            if (!dropdown.classList.contains('hidden')) {
+                const list = document.getElementById('notificationList');
+                list.innerHTML = notifications.map(n => `
+                    <div class="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 rounded-full ${getNotificationColor(n.type)} mt-2"></div>
+                            <div>
+                                <p class="text-sm text-gray-800">${n.message}</p>
+                                <p class="text-xs text-gray-500 mt-1">${n.time}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function getNotificationColor(type) {
+            const colors = {
+                success: 'bg-green-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-indigo-500'
+            };
+            return colors[type] || 'bg-gray-500';
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.relative')) {
+                document.getElementById('notificationDropdown').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
